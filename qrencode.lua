@@ -999,6 +999,10 @@ local function prepare_matrix_with_mask( version,ec_level, mask )
 		for j=1,size do
 			tab_x[i][j] = 0
 		end
+		if i % 2 == 0 then -- every other frame
+			coroutine.yield()
+			-- print( "pmwm", playdate.getCurrentTimeMilliseconds() )
+		end
 	end
 	add_position_detection_patterns(tab_x)
 	add_timing_pattern(tab_x)
@@ -1287,12 +1291,16 @@ local function get_matrix_with_lowest_penalty(version,ec_level,data)
 
 	-- try masks 0-7
 	tab_min_penalty, min_penalty = get_matrix_and_penalty(version,ec_level,data,0)
+	coroutine.yield()
+	-- print( "gmap", playdate.getCurrentTimeMilliseconds() )
 	for i=1,7 do
 		tab, penalty = get_matrix_and_penalty(version,ec_level,data,i)
 		if penalty < min_penalty then
 			tab_min_penalty = tab
 			min_penalty = penalty
 		end
+		coroutine.yield()
+		-- print( "gmwlp", playdate.getCurrentTimeMilliseconds() )
 	end
 	return tab_min_penalty
 end
@@ -1311,11 +1319,17 @@ local function qrcode( str, ec_level, mode )
 	data_raw = data_raw .. len_bitstring
 	data_raw = data_raw .. encode_data(str,mode)
 	data_raw = add_pad_data(version,ec_level,data_raw)
+	coroutine.yield()
+	-- print( "after apd", playdate.getCurrentTimeMilliseconds() )
 	arranged_data = arrange_codewords_and_calculate_ec(version,ec_level,data_raw)
+	coroutine.yield()
+	-- print( "after acace", playdate.getCurrentTimeMilliseconds() )
 	if math.fmod(#arranged_data,8) ~= 0 then
 		return false, string.format("Arranged data %% 8 != 0: data length = %d, mod 8 = %d",#arranged_data, math.fmod(#arranged_data,8))
 	end
 	arranged_data = arranged_data .. string.rep("0",remainder[version])
+	coroutine.yield()
+	-- print( "before gmwlp", playdate.getCurrentTimeMilliseconds() )
 	local tab = get_matrix_with_lowest_penalty(version,ec_level,arranged_data)
 	return true, tab
 end
